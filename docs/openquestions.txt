@@ -1,0 +1,2 @@
+How long between each machine check?  looks like 30 seconds?  ProcessAutoScaleService.cs
+Do we kill active machines?
