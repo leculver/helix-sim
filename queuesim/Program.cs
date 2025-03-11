@@ -75,7 +75,7 @@ static void RunSimulation(TextWriter output, IQueueScaler scaler, string queueNa
     foreach (double percentile in percentiles)
         output.Write($"{percentile}\t");
     output.Write($"{machineHours}\t");
-    output.Write($"{wasted.TotalHours}\t");
+    output.Write($"{wasted.TotalHours / totalDays}\t");
     output.Write($"{spinups / totalDays}\t");
     output.Write($"{machineHours + spinups * spinupTimeHours}\t");
     output.WriteLine();
