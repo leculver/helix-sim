@@ -1,0 +1,32 @@
+This query drives the output below.  Copy the table as a tab separated value then append it to "queued_work.tsv".
+Change the ActualQueue below to be the queue to query.  The difficulty here is that you can quickly run into
+data size limits, which is why we have to do it queue by queue instead of for everything at once.  You can
+either automate this in C#, or just manually pull down the queues you want to backtest.
+
+let StartTime = datetime(2024-10-1);
+let EndTime = now();
+let TimeStep = 1m;
+let ActualQueue = "windows.11.amd64.client.open";
+let TimeBuckets = range Hour from StartTime to EndTime step TimeStep 
+                  | extend QueueName = ActualQueue;
+let Work =
+    Jobs
+    | where Queued >= StartTime and Queued < EndTime
+    | project-away Started, Finished
+    | join kind=inner WorkItems on JobId;
+let QueuedData =
+    Work
+    | extend RunTime = (Finished - Started) / 1m
+    | summarize
+         QueuedCount = count(),
+         ExecutionTimes = strcat_array(make_list(tostring(RunTime)), " ")
+         by QueueName, Hour = bin(Queued, TimeStep);
+let JobsByHour = TimeBuckets
+    | join kind=leftouter QueuedData on QueueName, Hour
+    | project Hour, QueueName, //FriendlyNames,
+              QueuedCount = coalesce(QueuedCount, 0),
+              ExecutionTimes
+    | order by Hour asc, QueueName asc;
+JobsByHour
+| where QueueName == ActualQueue
+| where QueuedCount > 0

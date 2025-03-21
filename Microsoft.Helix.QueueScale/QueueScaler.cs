@@ -5,9 +5,10 @@ public class QueueScaler : IQueueScaler
 {
     private readonly LinkedList<(DateTime When, int Machines)> _spindownTimes = [];
     private readonly List<QueueState> _history = [];
-    private const double SlaScale = 0.8;
+    private const double OverheadScaleFactor = 0.8;
     private const int WorkItemPercentile = 90;
     private static readonly TimeSpan SpinDownDelay = TimeSpan.FromMinutes(12);
+    private static readonly TimeSpan MaxStartupDelay = TimeSpan.FromMinutes(30);
 
     public async Task<int> GetQueueNeededCapacityAsync(IQueueInformationProvider provider, CancellationToken ct)
     {
@@ -58,8 +59,9 @@ public class QueueScaler : IQueueScaler
         // From the original code:  This scales down our SLA by a factor to account for cleanup overhead, machines
         // taking longer to spin up, and work taking longer than expected.  We assume a slightly better scaleup than
         // the original code since the code below assumes we always pay the full spinup time regardless of how long
-        // ago we actually starting spinning up a machines.
-        TimeSpan sla = TimeSpan.FromTicks((long)(settings.Sla.Ticks * SlaScale));
+        // ago we actually starting spinning up a machines.  Note that we don't actually use the SLA here (the original
+        // does but this doesn't).  Instead we set a MaxStartupDelay to ensure no differences between queues.
+        TimeSpan sla = TimeSpan.FromTicks((long)(MaxStartupDelay.Ticks * OverheadScaleFactor));
 
         // How long we have left in our SLA after spinning up a machine
         TimeSpan remainingSlaAfterSpinup = sla - machineCreationTime;
